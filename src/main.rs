@@ -43,6 +43,7 @@ struct Player;
 
 fn player_movement(
     time: Res<Time>,
+    windows: Res<Windows>,
     keyboard_input: Res<Input<KeyCode>>,
     cursor_moved_events: Res<Events<CursorMoved>>,
     mut cursor_moved_events_reader: Local<EventReader<CursorMoved>>,
@@ -51,12 +52,17 @@ fn player_movement(
 ) {
     // note: cursor position is 0,0 in the bottom left corner, while top left corner is W,H
     // note: this position needs to be translated such that the player's position = W/2,H/2
-    let cursor_pos = match cursor_moved_events_reader.latest(&cursor_moved_events) {
+    let rotation = match cursor_moved_events_reader.latest(&cursor_moved_events) {
         Some(e) => {
-            println!("M-P -> {}", e.position);
-            Some(e.position)
+            if let Some(win) = windows.get_primary() {
+                let x = e.position.x - win.width() / 2.0;
+                let y = e.position.y - win.height() / 2.0;
+                Some(Quat::from_rotation_z(y.atan2(x)))
+            } else {
+                None
+            }
         }
-        None => None,
+        None => None
     };
 
     let delta = 200.0 * time.delta_seconds();
@@ -75,18 +81,23 @@ fn player_movement(
         vert_delta -= delta;
     }
 
-    if delta > 0.0 {
-        for mut player_transform in player_query.iter_mut() {
-            player_transform.translation.x += horz_delta;
-            player_transform.translation.y += vert_delta;
-            println!("P-P -> {}", player_transform.translation);
-            println!("P-R -> {}", player_transform.rotation);
+    for mut player_transform in player_query.iter_mut() {
+        player_transform.translation.x += horz_delta;
+        player_transform.translation.y += vert_delta;
+        if let Some(r) = rotation {
+            player_transform.rotation = r;
         }
+        // if horz_delta > 0.0 || vert_delta > 0.0 || rotation.is_some() {
+        //     println!("P-P -> {}", player_transform.translation);
+        //     println!("P-R -> {}", player_transform.rotation);
+        // }
+    }
 
-        for mut camera_transform in camera_query.iter_mut() {
-            camera_transform.translation.x += horz_delta;
-            camera_transform.translation.y += vert_delta;
-            println!("C-P -> {}", camera_transform.translation);
-        }
+    for mut camera_transform in camera_query.iter_mut() {
+        camera_transform.translation.x += horz_delta;
+        camera_transform.translation.y += vert_delta;
+        // if horz_delta > 0.0 || vert_delta > 0.0 {
+        //     println!("C-P -> {}", camera_transform.translation);
+        // }
     }
 }

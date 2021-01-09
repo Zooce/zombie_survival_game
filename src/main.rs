@@ -25,20 +25,34 @@ fn setup(
 ) {
     // draw the temp player sprite
     let background_texture_handle = asset_server.load("test-background.png");
-    let player_texture_handle = asset_server.load("icon.png");
+    let player_texture_handle = asset_server.load("player.png");
+    let zombie_texture_handle = asset_server.load("zombie.png");
     commands
         .spawn(Camera2dBundle::default())
+        // background sprite
         .spawn(SpriteBundle {
             material: materials.add(background_texture_handle.into()),
             ..Default::default()
         })
+        .with(Background)
+        // player sprite
         .spawn(SpriteBundle {
             material: materials.add(player_texture_handle.into()),
             ..Default::default()
         })
-        .with(Player);
+        .with(Player)
+        // zombie sprite
+        .spawn(SpriteBundle {
+            material: materials.add(zombie_texture_handle.into()),
+            transform: Transform::from_translation(Vec3::new(-300.0, 200.0, 0.0)),
+            ..Default::default()
+        })
+        .with(Zombie)
+        ;
 }
 
+struct Background;
+struct Zombie;
 struct Player;
 
 fn player_movement(

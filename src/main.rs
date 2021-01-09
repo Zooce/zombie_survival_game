@@ -65,39 +65,33 @@ fn player_movement(
         None => None
     };
 
-    let delta = 200.0 * time.delta_seconds();
-    let mut horz_delta = 0.0;
+    let mut input_vector = Vec3::zero();
     if keyboard_input.pressed(KeyCode::A) {
-        horz_delta -= delta;
+        input_vector.x -= 1.0;
     }
     if keyboard_input.pressed(KeyCode::D) {
-        horz_delta += delta;
+        input_vector.x += 1.0;
     }
-    let mut vert_delta = 0.0;
     if keyboard_input.pressed(KeyCode::W) {
-        vert_delta += delta;
+        input_vector.y += 1.0;
     }
     if keyboard_input.pressed(KeyCode::S) {
-        vert_delta -= delta;
+        input_vector.y -= 1.0;
+    }
+
+    if input_vector != Vec3::zero() {
+        let delta = 200.0 * time.delta_seconds();
+        input_vector = input_vector.normalize() * delta;
     }
 
     for mut player_transform in player_query.iter_mut() {
-        player_transform.translation.x += horz_delta;
-        player_transform.translation.y += vert_delta;
+        player_transform.translation += input_vector;
         if let Some(r) = rotation {
             player_transform.rotation = r;
         }
-        // if horz_delta > 0.0 || vert_delta > 0.0 || rotation.is_some() {
-        //     println!("P-P -> {}", player_transform.translation);
-        //     println!("P-R -> {}", player_transform.rotation);
-        // }
     }
 
     for mut camera_transform in camera_query.iter_mut() {
-        camera_transform.translation.x += horz_delta;
-        camera_transform.translation.y += vert_delta;
-        // if horz_delta > 0.0 || vert_delta > 0.0 {
-        //     println!("C-P -> {}", camera_transform.translation);
-        // }
+        camera_transform.translation += input_vector;
     }
 }

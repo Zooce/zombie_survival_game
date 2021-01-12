@@ -125,7 +125,7 @@ struct ZombieTimer {
 impl Default for ZombieTimer {
     fn default() -> Self {
         Self {
-            timer: Timer::from_seconds(2.0, true),
+            timer: Timer::from_seconds(3.0, true),
         }
     }
 }
@@ -141,10 +141,11 @@ fn zombie_movement(
     let zombie_speed = 50.0 * time.delta_seconds();
     for (mut zombie, mut zombie_transform) in zombie_query.iter_mut() {
         if zombie_timer.timer.finished() {
-            zombie.angle += rng.gen_range(-1.0..1.0) * (std::f32::consts::PI / 2.0);
+            zombie.angle = rng.gen_range(-1.0..1.0) * (std::f32::consts::PI);
             println!("new zombie angle: {}, x: {}, y: {}", zombie.angle, zombie.angle.cos(), zombie.angle.sin());
         }
-        zombie_transform.rotation = Quat::from_rotation_z(zombie.angle);
+        let towards = Quat::from_rotation_z(zombie.angle);
+        zombie_transform.rotation = zombie_transform.rotation.lerp(towards, zombie_timer.timer.percent());
         zombie_transform.translation += Vec3::new(zombie.angle.cos(), zombie.angle.sin(), 0.0) * zombie_speed;
     }
 }

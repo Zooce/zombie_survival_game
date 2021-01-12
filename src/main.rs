@@ -3,18 +3,20 @@ use bevy::render::camera::Camera;
 
 fn main() {
     App::build()
-    .add_resource(
-        WindowDescriptor {
-            title: "Zombie Survival Game".to_string(),
-            width: 1280.0,
-            height: 720.0,
-            resizable: false,
-            ..Default::default()
-        }
-    )
+        .add_resource(
+            WindowDescriptor {
+                title: "Zombie Survival Game".to_string(),
+                width: 1280.0,
+                height: 720.0,
+                resizable: false,
+                ..Default::default()
+            }
+        )
+        .init_resource::<ZombieTimer>()
         .add_plugins(DefaultPlugins)
         .add_startup_system(setup.system())
         .add_system(player_movement.system())
+        .add_system(zombie_movement.system())
         .run();
 }
 
@@ -25,8 +27,8 @@ fn setup(
 ) {
     // draw the temp player sprite
     let background_texture_handle = asset_server.load("test-background.png");
-    let player_texture_handle = asset_server.load("player.png");
-    let zombie_texture_handle = asset_server.load("zombie.png");
+    let player_texture_handle = asset_server.load("Player.png");
+    let zombie_texture_handle = asset_server.load("Enemy.png");
     commands
         .spawn(Camera2dBundle::default())
         // background sprite
@@ -47,12 +49,12 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(-300.0, 200.0, 0.0)),
             ..Default::default()
         })
-        .with(Zombie)
+        .with(Zombie{ angle: 0.0 })
         ;
 }
 
 struct Background;
-struct Zombie;
+//------------------------------------------------------------------------------ Player
 struct Player;
 
 fn player_movement(
@@ -94,8 +96,8 @@ fn player_movement(
     }
 
     if input_vector != Vec3::zero() {
-        let delta = 200.0 * time.delta_seconds();
-        input_vector = input_vector.normalize() * delta;
+        let player_speed = 200.0 * time.delta_seconds();
+        input_vector = input_vector.normalize() * player_speed;
     }
 
     for mut player_transform in player_query.iter_mut() {
@@ -107,5 +109,42 @@ fn player_movement(
 
     for mut camera_transform in camera_query.iter_mut() {
         camera_transform.translation += input_vector;
+    }
+}
+
+//------------------------------------------------------------------------------ Zombie
+
+struct Zombie {
+    angle: f32,
+}
+
+struct ZombieTimer {
+    timer: Timer,
+}
+
+impl Default for ZombieTimer {
+    fn default() -> Self {
+        Self {
+            timer: Timer::from_seconds(2.0, true),
+        }
+    }
+}
+
+use rand::{thread_rng, Rng};
+fn zombie_movement(
+    time: Res<Time>,
+    mut zombie_timer: ResMut<ZombieTimer>,
+    mut zombie_query: Query<(&mut Zombie, &mut Transform)>,
+) {
+    zombie_timer.timer.tick(time.delta_seconds());
+    let mut rng = thread_rng();
+    let zombie_speed = 50.0 * time.delta_seconds();
+    for (mut zombie, mut zombie_transform) in zombie_query.iter_mut() {
+        if zombie_timer.timer.finished() {
+            zombie.angle += rng.gen_range(-1.0..1.0) * (std::f32::consts::PI / 2.0);
+            println!("new zombie angle: {}, x: {}, y: {}", zombie.angle, zombie.angle.cos(), zombie.angle.sin());
+        }
+        zombie_transform.rotation = Quat::from_rotation_z(zombie.angle);
+        zombie_transform.translation += Vec3::new(zombie.angle.cos(), zombie.angle.sin(), 0.0) * zombie_speed;
     }
 }

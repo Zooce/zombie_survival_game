@@ -13,10 +13,13 @@ fn main() {
             }
         )
         .init_resource::<ZombieTimer>()
+        .add_event::<ShootEvent>()
         .add_plugins(DefaultPlugins)
         .add_startup_system(setup.system())
         .add_system(player_movement.system())
         .add_system(zombie_movement.system())
+        .add_system(check_mouse_events.system())
+        .add_system(handle_shoot_events.system())
         .run();
 }
 
@@ -54,6 +57,7 @@ fn setup(
 }
 
 struct Background;
+
 //------------------------------------------------------------------------------ Player
 struct Player;
 
@@ -100,14 +104,16 @@ fn player_movement(
         input_vector = input_vector.normalize() * player_speed;
     }
 
-    for mut player_transform in player_query.iter_mut() {
+    // there's only one player
+    if let Some(mut player_transform) = player_query.iter_mut().last() {
         player_transform.translation += input_vector;
         if let Some(r) = rotation {
             player_transform.rotation = r;
         }
     }
 
-    for mut camera_transform in camera_query.iter_mut() {
+    // there's only one camera
+    if let Some(mut camera_transform) = camera_query.iter_mut().last() {
         camera_transform.translation += input_vector;
     }
 }
@@ -142,10 +148,36 @@ fn zombie_movement(
     for (mut zombie, mut zombie_transform) in zombie_query.iter_mut() {
         if zombie_timer.timer.finished() {
             zombie.angle = rng.gen_range(-1.0..1.0) * (std::f32::consts::PI);
-            println!("new zombie angle: {}, x: {}, y: {}", zombie.angle, zombie.angle.cos(), zombie.angle.sin());
         }
         let towards = Quat::from_rotation_z(zombie.angle);
         zombie_transform.rotation = zombie_transform.rotation.lerp(towards, zombie_timer.timer.percent());
         zombie_transform.translation += Vec3::new(zombie.angle.cos(), zombie.angle.sin(), 0.0) * zombie_speed;
+    }
+}
+
+//------------------------------------------------------------------------------ Bullets
+
+#[derive(Default)]
+struct ShootEvent(Transform);
+
+fn check_mouse_events(
+    mouse_button_input: Res<Input<MouseButton>>,
+    mut shoot_events: ResMut<Events<ShootEvent>>,
+    player_query: Query<&Transform, With<Player>>,
+) {
+    if mouse_button_input.just_pressed(MouseButton::Left) {
+        // there's only one player
+        if let Some(transform) = player_query.iter().last() {
+            shoot_events.send(ShootEvent(transform.to_owned()));
+        }
+    }
+}
+
+fn handle_shoot_events(
+    shoot_events: Res<Events<ShootEvent>>,
+    mut shoot_events_reader: Local<EventReader<ShootEvent>>,
+) {
+    if let Some(event) = shoot_events_reader.iter(&shoot_events).next_back() {
+        println!("received shoot event from: {:?}", event.0);
     }
 }

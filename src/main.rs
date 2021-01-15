@@ -6,8 +6,6 @@ fn main() {
         .add_resource(
             WindowDescriptor {
                 title: "Zombie Survival Game".to_string(),
-                width: 1280.0,
-                height: 720.0,
                 resizable: false,
                 ..Default::default()
             }
@@ -20,6 +18,8 @@ fn main() {
         .add_system(zombie_movement.system())
         .add_system(check_mouse_events.system())
         .add_system(handle_shoot_events.system())
+        .add_system(bullet_movement.system())
+        .add_system(bullet_decay.system())
         .run();
 }
 
@@ -34,18 +34,21 @@ fn setup(
     let zombie_texture_handle = asset_server.load("Enemy.png");
     commands
         .spawn(Camera2dBundle::default())
+
         // background sprite
         .spawn(SpriteBundle {
             material: materials.add(background_texture_handle.into()),
             ..Default::default()
         })
         .with(Background)
+
         // player sprite
         .spawn(SpriteBundle {
             material: materials.add(player_texture_handle.into()),
             ..Default::default()
         })
         .with(Player)
+
         // zombie sprite
         .spawn(SpriteBundle {
             material: materials.add(zombie_texture_handle.into()),
@@ -144,6 +147,8 @@ fn zombie_movement(
 ) {
     zombie_timer.timer.tick(time.delta_seconds());
     let mut rng = thread_rng();
+    // TODO: store this speed with the zombie? different zombies will have
+    //       different speeds?
     let zombie_speed = 50.0 * time.delta_seconds();
     for (mut zombie, mut zombie_transform) in zombie_query.iter_mut() {
         if zombie_timer.timer.finished() {
@@ -173,11 +178,63 @@ fn check_mouse_events(
     }
 }
 
+struct Bullet {
+    decay_timer: Timer,
+}
+
+impl Default for Bullet {
+    fn default() -> Self {
+        Self {
+            decay_timer: Timer::from_seconds(0.25, false),
+        }
+    }
+}
+
 fn handle_shoot_events(
     shoot_events: Res<Events<ShootEvent>>,
     mut shoot_events_reader: Local<EventReader<ShootEvent>>,
+    commands: &mut Commands,
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     if let Some(event) = shoot_events_reader.iter(&shoot_events).next_back() {
-        println!("received shoot event from: {:?}", event.0);
+        let bullet_texture = asset_server.load("Bullet.png");
+        commands
+            .spawn(SpriteBundle {
+                material: materials.add(bullet_texture.into()),
+                transform: event.0.to_owned(),
+                ..Default::default()
+            })
+            .with(Bullet::default())
+            ;
+    }
+}
+
+fn bullet_movement(
+    time: Res<Time>,
+    mut bullet_query: Query<&mut Transform, With<Bullet>>,
+) {
+    // TODO: store this speed with either the bullet or the weapon (it will be
+    //       different for each type of weapon and/or bullet)?
+    let speed = 1500.0 * time.delta_seconds();
+
+    for mut bullet_transform in bullet_query.iter_mut() {
+        let (_, mut angle) = bullet_transform.rotation.to_axis_angle();
+        if bullet_transform.rotation.z < 0.0 {
+            angle *= -1.0;
+        }
+        bullet_transform.translation += Vec3::new(angle.cos(), angle.sin(), 0.0) * speed;
+    }
+}
+
+fn bullet_decay(
+    commands: &mut Commands,
+    time: Res<Time>,
+    mut bullet_query: Query<(Entity, &mut Bullet)>,
+) {
+    for (entity, mut bullet) in bullet_query.iter_mut() {
+        if bullet.decay_timer.tick(time.delta_seconds()).finished() {
+            commands.despawn(entity);
+        }
     }
 }

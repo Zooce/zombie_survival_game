@@ -219,10 +219,8 @@ fn bullet_movement(
     let speed = 1500.0 * time.delta_seconds();
 
     for mut bullet_transform in bullet_query.iter_mut() {
-        let (_, mut angle) = bullet_transform.rotation.to_axis_angle();
-        if bullet_transform.rotation.z < 0.0 {
-            angle *= -1.0;
-        }
+        let (axis, mut angle) = bullet_transform.rotation.to_axis_angle();
+        angle *= axis.z;
         bullet_transform.translation += Vec3::new(angle.cos(), angle.sin(), 0.0) * speed;
     }
 }

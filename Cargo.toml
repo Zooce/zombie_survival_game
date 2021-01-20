@@ -9,4 +9,3 @@ edition = "2018"
 [dependencies]
 bevy = "0.4"
 rand = "0.8"
-bevy_rapier2d = "0.7"

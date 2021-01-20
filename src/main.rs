@@ -30,7 +30,6 @@ fn setup(
 ) {
     // draw the temp player sprite
     let background_texture_handle = asset_server.load("test-background.png");
-    let player_texture_handle = asset_server.load("Player.png");
     let zombie_texture_handle = asset_server.load("Enemy.png");
     commands
         .spawn(Camera2dBundle::default())
@@ -42,13 +41,6 @@ fn setup(
         })
         .with(Background)
 
-        // player sprite
-        .spawn(SpriteBundle {
-            material: materials.add(player_texture_handle.into()),
-            ..Default::default()
-        })
-        .with(Player)
-
         // zombie sprite
         .spawn(SpriteBundle {
             material: materials.add(zombie_texture_handle.into()),
@@ -57,12 +49,32 @@ fn setup(
         })
         .with(Zombie{ angle: 0.0 })
         ;
+
+    spawn_player(commands, asset_server, materials);
 }
 
 struct Background;
 
 //------------------------------------------------------------------------------ Player
 struct Player;
+
+fn spawn_player(
+    commands: &mut Commands,
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    // sprite
+    let player_texture_handle = asset_server.load("Player.png");
+
+    // basic player components
+    commands
+        .spawn(SpriteBundle {
+            material: materials.add(player_texture_handle.into()),
+            ..Default::default()
+        })
+        .with(Player)
+        ;
+}
 
 fn player_movement(
     time: Res<Time>,

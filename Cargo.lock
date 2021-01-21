@@ -510,7 +510,7 @@ dependencies = [
 [[package]]
 name = "bevy_prototype_lyon"
 version = "0.1.5"
-source = "git+https://github.com/Nilirad/bevy_prototype_lyon.git#529d648799f8cf68dedff2668a30c172bc8fd80b"
+source = "git+https://github.com/Nilirad/bevy_prototype_lyon.git?rev=529d648799f8cf68dedff2668a30c172bc8fd80b#529d648799f8cf68dedff2668a30c172bc8fd80b"
 dependencies = [
  "bevy",
  "lyon_tessellation",

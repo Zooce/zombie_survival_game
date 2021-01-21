@@ -9,4 +9,4 @@ edition = "2018"
 [dependencies]
 bevy = "0.4"
 rand = "0.8"
-bevy_prototype_lyon = { git = "https://github.com/Nilirad/bevy_prototype_lyon.git" }
+bevy_prototype_lyon = { git = "https://github.com/Nilirad/bevy_prototype_lyon.git", rev = "529d648799f8cf68dedff2668a30c172bc8fd80b" }

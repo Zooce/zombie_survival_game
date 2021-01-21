@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy::render::camera::Camera;
 
+use bevy_prototype_lyon::prelude::*;
+
 fn main() {
     App::build()
         .add_resource(
@@ -13,6 +15,7 @@ fn main() {
         .init_resource::<ZombieTimer>()
         .add_event::<ShootEvent>()
         .add_plugins(DefaultPlugins)
+        .add_plugin(ShapePlugin)
         .add_startup_stage("insert_resources", SystemStage::single(insert_reusable_resources.system()))
         .add_startup_stage_after("insert_resources", "setup", SystemStage::single(setup.system()))
         .add_system(player_movement.system())
@@ -33,6 +36,7 @@ fn insert_reusable_resources(
     let texture_handles = TextureHandles {
         zombie_handle: materials.add(asset_server.load("Enemy.png").into()),
         bullet_handle: materials.add(asset_server.load("Bullet.png").into()),
+        debug_collider_handle: materials.add(Color::GREEN.into()),
     };
     commands.insert_resource(texture_handles);
 }
@@ -66,6 +70,7 @@ struct Background;
 struct TextureHandles {
     zombie_handle: Handle<ColorMaterial>,
     bullet_handle: Handle<ColorMaterial>,
+    debug_collider_handle: Handle<ColorMaterial>,
 }
 
 //------------------------------------------------------------------------------ Common
@@ -173,6 +178,12 @@ fn spawn_zombie(
     commands: &mut Commands,
     texture_handles: Res<TextureHandles>,
 ) {
+    // debugging
+    let collider_shape = shapes::Circle {
+        radius: 32.0,
+        ..Default::default()
+    };
+
     commands
         .spawn(SpriteBundle {
             material: texture_handles.zombie_handle.clone(),
@@ -181,6 +192,15 @@ fn spawn_zombie(
         })
         .with(Zombie { angle: 0.0 })
         .with(ColliderRadius(32.0))
+        // debugging
+        .with_children(|parent| {
+            parent.spawn(ShapeBuilder::build_as(
+                &collider_shape,
+                texture_handles.debug_collider_handle.clone(),
+                TessellationMode::Stroke(StrokeOptions::default()),
+                Transform::default())
+            );
+        })
         ;
 }
 
@@ -218,7 +238,7 @@ fn check_mouse_events(
     if mouse_button_input.just_pressed(MouseButton::Left) {
         // there's only one player
         if let Some(transform) = player_query.iter().last() {
-            shoot_events.send(ShootEvent(transform.to_owned()));
+            shoot_events.send(ShootEvent(transform.clone()));
         }
     }
 }
@@ -242,6 +262,12 @@ fn handle_shoot_events(
     texture_handles: Res<TextureHandles>,
 ) {
     if let Some(event) = shoot_events_reader.iter(&shoot_events).next_back() {
+        // debugging
+        let collider_shape = shapes::Circle {
+            radius: 8.0,
+            ..Default::default()
+        };
+
         commands
             .spawn(SpriteBundle {
                 material: texture_handles.bullet_handle.clone(),
@@ -250,6 +276,15 @@ fn handle_shoot_events(
             })
             .with(Bullet::default())
             .with(ColliderRadius(8.0))
+            // debugging
+            .with_children(|parent| {
+                parent.spawn(ShapeBuilder::build_as(
+                    &collider_shape,
+                    texture_handles.debug_collider_handle.clone(),
+                    TessellationMode::Stroke(StrokeOptions::default()),
+                    Transform::default())
+                );
+            })
             ;
     }
 }
@@ -276,7 +311,8 @@ fn bullet_decay(
 ) {
     for (entity, mut bullet) in bullet_query.iter_mut() {
         if bullet.decay_timer.tick(time.delta_seconds()).finished() {
-            commands.despawn(entity);
+            //commands.despawn(entity);
+            commands.despawn_recursive(entity);
         }
     }
 }

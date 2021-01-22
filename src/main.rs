@@ -77,6 +77,13 @@ struct TextureHandles {
 
 struct ColliderRadius(f32);
 
+struct Health {
+    points: i64,
+}
+
+struct Attack {
+    damage: i64,
+}
 
 //------------------------------------------------------------------------------ Player
 struct Player;
@@ -192,6 +199,7 @@ fn spawn_zombie(
         })
         .with(Zombie { angle: 0.0 })
         .with(ColliderRadius(32.0))
+        .with(Health { points: 100 })
         // debugging
         .with_children(|parent| {
             parent.spawn(ShapeBuilder::build_as(
@@ -204,12 +212,12 @@ fn spawn_zombie(
         ;
 }
 
-use rand::{thread_rng, Rng};
 fn zombie_movement(
     time: Res<Time>,
     mut zombie_timer: ResMut<ZombieTimer>,
     mut zombie_query: Query<(&mut Zombie, &mut Transform)>,
 ) {
+    use rand::{thread_rng, Rng};
     zombie_timer.timer.tick(time.delta_seconds());
     let mut rng = thread_rng();
     // TODO: store this speed with the zombie? different zombies will have
@@ -276,6 +284,7 @@ fn handle_shoot_events(
             })
             .with(Bullet::default())
             .with(ColliderRadius(8.0))
+            .with(Attack{ damage: 10 })
             // debugging
             .with_children(|parent| {
                 parent.spawn(ShapeBuilder::build_as(
@@ -318,8 +327,9 @@ fn bullet_decay(
 }
 
 fn check_bullet_collisions(
-    zombie_query: Query<(&ColliderRadius, &Transform), With<Zombie>>,
-    bullet_query: Query<(&ColliderRadius, &Transform), With<Bullet>>,
+    commands: &mut Commands,
+    mut zombie_query: Query<(Entity, &ColliderRadius, &Transform, &mut Health), With<Zombie>>,
+    bullet_query: Query<(Entity, &ColliderRadius, &Transform, &Attack), With<Bullet>>,
 ) {
     // two circles in 2D are colliding iff:
     //
@@ -329,13 +339,22 @@ fn check_bullet_collisions(
     //
     //      (r1 + r2)^2  >  (x2 - x1)^2 + (y2 - y1)^2
 
-    for (br, bt) in bullet_query.iter() {
-        for (zr, zt) in zombie_query.iter() {
+    for (be, br, bt, attack) in bullet_query.iter() {
+        for (ze, zr, zt, mut health) in zombie_query.iter_mut() {
             let max_dist = (br.0 + zr.0).powi(2);
             let dist = (bt.translation.x - zt.translation.x).powi(2)
                 + (bt.translation.y - zt.translation.y).powi(2);
             if dist < max_dist {
-                println!("Collision {} {}", bt.translation, zt.translation);
+                // todo list:
+                //  - play "got shot" sound effect
+                //  - display blood splatter on the ground (this also needs to time out...?)
+                //  - maybe move these different parts to different systems?
+                //  - play some kind of animation on the zombie, showing that it took damage
+                health.points -= attack.damage;
+                if health.points <= 0 {
+                    commands.despawn_recursive(ze);
+                }
+                commands.despawn_recursive(be);
             }
         }
     }

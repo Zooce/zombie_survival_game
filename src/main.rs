@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::*;
 
+mod animation;
+use crate::animation::*;
+
 mod bullet;
 use crate::bullet::*;
 
@@ -41,7 +44,7 @@ fn main() {
         .add_system(check_mouse_click_events.system())
         .add_system(handle_shoot_events.system())
         .add_system(bullet_movement.system())
-        .add_system(check_mouse_position.system())
+        .add_system(check_mouse_move_events.system())
         .add_system(bullet_decay.system())
         .add_system(check_bullet_collisions.system())
         .run();
@@ -54,7 +57,7 @@ fn insert_reusable_resources(
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
     let texture_handle = asset_server.load("spritesheet.png");
-    let texture_atlas = TextureAtlas::from_grid(texture_handle, Vec2::new(16.0, 16.0), 6, 8);
+    let texture_atlas = TextureAtlas::from_grid(texture_handle, Vec2::new(16.0, 16.0), PLAYER_ANIM_FRAME_COUNT as usize, PLAYER_ANIM_DIR_COUNT as usize);
     let resource_handles = ResourceHandles {
         zombie_handle: materials.add(asset_server.load("Enemy.png").into()),
         bullet_handle: materials.add(asset_server.load("Bullet.png").into()),

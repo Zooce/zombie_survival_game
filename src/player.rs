@@ -1,78 +1,40 @@
 use bevy::prelude::*;
-use bevy::render::camera::Camera;
+
+use crate::common::*;
+
 pub struct Player;
 
 pub fn spawn_player(
     commands: &mut Commands,
-    asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    resource_handles: &ResourceHandles,
 ) {
-    // sprite
-    let player_texture_handle = asset_server.load("Player.png");
-
     // basic player components
     commands
-        .spawn(SpriteBundle {
-            material: materials.add(player_texture_handle.into()),
+        .spawn(SpriteSheetBundle {
+            texture_atlas: resource_handles.player_texture_atlas_handle.clone(),
+            transform: Transform::from_scale(Vec3::splat(6.0)),
             ..Default::default()
         })
+        .with(Timer::from_seconds(0.1, true))
         .with(Player)
         ;
 }
 
-pub fn player_movement(
+// pub AnimationState {
+
+// }
+
+pub fn animate_player(
     time: Res<Time>,
-    windows: Res<Windows>,
-    keyboard_input: Res<Input<KeyCode>>,
-    cursor_moved_events: Res<Events<CursorMoved>>,
-    mut cursor_moved_events_reader: Local<EventReader<CursorMoved>>,
-    mut camera_query: Query<&mut Transform, With<Camera>>,
-    mut player_query: Query<&mut Transform, With<Player>>,
+    texture_atlases: Res<Assets<TextureAtlas>>,
+    mut query: Query<(&mut Timer, &mut TextureAtlasSprite, &Handle<TextureAtlas>)>,
 ) {
-    // note: cursor position is 0,0 in the bottom left corner, while top left corner is W,H
-    // note: this position needs to be translated such that the player's position = W/2,H/2
-    let rotation = match cursor_moved_events_reader.latest(&cursor_moved_events) {
-        Some(e) => {
-            if let Some(win) = windows.get_primary() {
-                let x = e.position.x - win.width() / 2.0;
-                let y = e.position.y - win.height() / 2.0;
-                Some(Quat::from_rotation_z(y.atan2(x)))
-            } else {
-                None
-            }
+    for (mut timer, mut sprite, texture_atlas_handle) in query.iter_mut() {
+        timer.tick(time.delta_seconds());
+        if timer.finished() {
+            let texture_atlas = texture_atlases.get(texture_atlas_handle).unwrap();
+            sprite.index = ((sprite.index as usize + 1) % texture_atlas.textures.len()) as u32;
+            println!("sprite index: {}", sprite.index);
         }
-        None => None
-    };
-
-    let mut input_vector = Vec3::zero();
-    if keyboard_input.pressed(KeyCode::A) {
-        input_vector.x -= 1.0;
-    }
-    if keyboard_input.pressed(KeyCode::D) {
-        input_vector.x += 1.0;
-    }
-    if keyboard_input.pressed(KeyCode::W) {
-        input_vector.y += 1.0;
-    }
-    if keyboard_input.pressed(KeyCode::S) {
-        input_vector.y -= 1.0;
-    }
-
-    if input_vector != Vec3::zero() {
-        let player_speed = 200.0 * time.delta_seconds();
-        input_vector = input_vector.normalize() * player_speed;
-    }
-
-    // there's only one player
-    if let Some(mut player_transform) = player_query.iter_mut().last() {
-        player_transform.translation += input_vector;
-        if let Some(r) = rotation {
-            player_transform.rotation = r;
-        }
-    }
-
-    // there's only one camera
-    if let Some(mut camera_transform) = camera_query.iter_mut().last() {
-        camera_transform.translation += input_vector;
     }
 }

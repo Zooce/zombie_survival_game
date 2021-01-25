@@ -21,7 +21,7 @@ impl Default for ZombieTimer {
 
 pub fn spawn_zombie(
     commands: &mut Commands,
-    texture_handles: Res<TextureHandles>,
+    resource_handles: &ResourceHandles,
 ) {
     // debugging
     let collider_shape = shapes::Circle {
@@ -31,7 +31,7 @@ pub fn spawn_zombie(
 
     commands
         .spawn(SpriteBundle {
-            material: texture_handles.zombie_handle.clone(),
+            material: resource_handles.zombie_handle.clone(),
             transform: Transform::from_translation(Vec3::new(-300.0, 200.0, 0.0)),
             ..Default::default()
         })
@@ -42,7 +42,7 @@ pub fn spawn_zombie(
         .with_children(|parent| {
             parent.spawn(ShapeBuilder::build_as(
                 &collider_shape,
-                texture_handles.debug_collider_handle.clone(),
+                resource_handles.debug_collider_handle.clone(),
                 TessellationMode::Stroke(StrokeOptions::default()),
                 Transform::default())
             );

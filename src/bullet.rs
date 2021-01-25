@@ -2,27 +2,14 @@ use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::*;
 
 use crate::common::*;
-use crate::player::*;
 use crate::zombie::*;
-
-#[derive(Default)]
-pub struct ShootEvent(pub Transform);
-
-pub fn check_mouse_events(
-    mouse_button_input: Res<Input<MouseButton>>,
-    mut shoot_events: ResMut<Events<ShootEvent>>,
-    player_query: Query<&Transform, With<Player>>,
-) {
-    if mouse_button_input.just_pressed(MouseButton::Left) {
-        // there's only one player
-        if let Some(transform) = player_query.iter().last() {
-            shoot_events.send(ShootEvent(transform.clone()));
-        }
-    }
-}
 
 pub struct Bullet {
     decay_timer: Timer,
+}
+
+pub struct BulletSpawnInfo {
+    pub transform: Transform,
 }
 
 impl Default for Bullet {
@@ -33,39 +20,36 @@ impl Default for Bullet {
     }
 }
 
-pub fn handle_shoot_events(
-    shoot_events: Res<Events<ShootEvent>>,
-    mut shoot_events_reader: Local<EventReader<ShootEvent>>,
+pub fn spawn_bullet(
     commands: &mut Commands,
-    texture_handles: Res<TextureHandles>,
+    resource_handles: &ResourceHandles,
+    transform: Transform,
 ) {
-    if let Some(event) = shoot_events_reader.iter(&shoot_events).next_back() {
-        // debugging
-        let collider_shape = shapes::Circle {
-            radius: 8.0,
+    commands
+        .spawn(SpriteBundle {
+            material: resource_handles.bullet_handle.clone(),
+            transform,
             ..Default::default()
-        };
+        })
+        .with(Bullet::default())
+        .with(ColliderRadius(8.0))
+        .with(Attack{ damage: 10 })
 
-        commands
-            .spawn(SpriteBundle {
-                material: texture_handles.bullet_handle.clone(),
-                transform: event.0.clone(),
+        // debugging
+        .with_children(|parent| {
+            let collider_shape = shapes::Circle {
+                radius: 8.0,
                 ..Default::default()
-            })
-            .with(Bullet::default())
-            .with(ColliderRadius(8.0))
-            .with(Attack{ damage: 10 })
-            // debugging
-            .with_children(|parent| {
-                parent.spawn(ShapeBuilder::build_as(
-                    &collider_shape,
-                    texture_handles.debug_collider_handle.clone(),
-                    TessellationMode::Stroke(StrokeOptions::default()),
-                    Transform::default())
-                );
-            })
-            ;
-    }
+            };
+
+            parent.spawn(ShapeBuilder::build_as(
+                &collider_shape,
+                resource_handles.debug_collider_handle.clone(),
+                TessellationMode::Stroke(StrokeOptions::default()),
+                Transform::default())
+            );
+        })
+        ;
 }
 
 pub fn bullet_movement(

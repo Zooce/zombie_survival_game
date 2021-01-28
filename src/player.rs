@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_prototype_lyon::prelude::*;
 
 use crate::animation::*;
 use crate::common::*;
@@ -19,5 +20,20 @@ pub fn spawn_player(
         .with(Timer::from_seconds(0.08, true))
         .with(AnimationState{ dir_offset: 6, frame: 0, is_walking: false })
         .with(Player)
+        .with(ColliderRadius(4.0))
+        // debugging
+        .with_children(|parent| {
+            let collider_shape = shapes::Circle {
+                radius: 4.0,
+                ..Default::default()
+            };
+
+            parent.spawn(ShapeBuilder::build_as(
+                &collider_shape,
+                resource_handles.debug_collider_handle.clone(),
+                TessellationMode::Stroke(StrokeOptions::default()),
+                Transform::default())
+            );
+        })
         ;
 }

@@ -23,12 +23,6 @@ pub fn spawn_zombie(
     commands: &mut Commands,
     resource_handles: &ResourceHandles,
 ) {
-    // debugging
-    let collider_shape = shapes::Circle {
-        radius: 32.0,
-        ..Default::default()
-    };
-
     commands
         .spawn(SpriteBundle {
             material: resource_handles.zombie_handle.clone(),
@@ -40,6 +34,11 @@ pub fn spawn_zombie(
         .with(Health { points: 100 })
         // debugging
         .with_children(|parent| {
+            let collider_shape = shapes::Circle {
+                radius: 32.0,
+                ..Default::default()
+            };
+
             parent.spawn(ShapeBuilder::build_as(
                 &collider_shape,
                 resource_handles.debug_collider_handle.clone(),

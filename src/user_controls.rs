@@ -29,7 +29,7 @@ pub fn check_mouse_move_events(
     // note: cursor position is 0,0 in the bottom left corner, while top left corner is W,H
     // note: this position needs to be translated such that the player's position = W/2,H/2
     if let Some(e) = cursor_moved_events_reader.latest(&cursor_moved_events) {
-        if let Some(win) = windows.get_primary() {
+        if let Some(win) = windows.get(e.id) {
             let x = e.position.x - win.width() / 2.0;
             let y = e.position.y - win.height() / 2.0;
             let angle = y.atan2(x);

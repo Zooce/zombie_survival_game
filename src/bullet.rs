@@ -1,7 +1,7 @@
 use bevy::prelude::*;
-use bevy_prototype_lyon::prelude::*;
 
 use crate::common::*;
+use crate::events::*;
 use crate::zombie::*;
 
 pub struct Bullet {
@@ -32,22 +32,20 @@ pub fn spawn_bullet(
             ..Default::default()
         })
         .with(Bullet::default())
-        .with(ColliderRadius(8.0))
+        .with(HitCollider {
+            radius: 8.0,
+            transform,
+        })
         .with(Attack{ damage: 10 })
 
         // debugging
         .with_children(|parent| {
-            let collider_shape = shapes::Circle {
-                radius: 8.0,
-                ..Default::default()
-            };
-
-            parent.spawn(ShapeBuilder::build_as(
-                &collider_shape,
-                resource_handles.debug_collider_handle.clone(),
-                TessellationMode::Stroke(StrokeOptions::default()),
-                Transform::default())
-            );
+            parent.
+                spawn(SpriteBundle {
+                    material: resource_handles.debug_hit_collider_handle.clone(),
+                    ..Default::default()
+                })
+                ;
         })
         ;
 }
@@ -81,33 +79,20 @@ pub fn bullet_decay(
 }
 
 pub fn check_bullet_collisions(
+    mut hurt_zombie_events: ResMut<Events<HurtZombieEvent>>,
     commands: &mut Commands,
-    mut zombie_query: Query<(Entity, &ColliderRadius, &Transform, &mut Health), With<Zombie>>,
-    bullet_query: Query<(Entity, &ColliderRadius, &Transform, &Attack), With<Bullet>>,
+    mut zombie_query: Query<(Entity, &HurtCollider, &Transform), With<Zombie>>,
+    bullet_query: Query<(Entity, &HitCollider, &Transform, &Attack), With<Bullet>>,
 ) {
-    // two circles in 2D are colliding iff:
-    //
-    //      r1 + r2  >  sqrt((x2 - x1)^2 + (y2 - y1)^2)
-    //
-    // or even better:
-    //
-    //      (r1 + r2)^2  >  (x2 - x1)^2 + (y2 - y1)^2
-
     for (be, br, bt, attack) in bullet_query.iter() {
-        for (ze, zr, zt, mut health) in zombie_query.iter_mut() {
-            let max_dist = (br.0 + zr.0).powi(2);
-            let dist = (bt.translation.x - zt.translation.x).powi(2)
-                + (bt.translation.y - zt.translation.y).powi(2);
-            if dist < max_dist {
+        for (ze, zr, zt) in zombie_query.iter_mut() {
+            if circles_collide(br.radius, bt.translation, zr.radius, zt.translation) {
                 // todo list:
                 //  - play "got shot" sound effect
                 //  - display blood splatter on the ground (this also needs to time out...?)
                 //  - maybe move these different parts to different systems?
                 //  - play some kind of animation on the zombie, showing that it took damage
-                health.points -= attack.damage;
-                if health.points <= 0 {
-                    commands.despawn_recursive(ze);
-                }
+                hurt_zombie_events.send(HurtZombieEvent { entity: ze, damage: attack.damage });
                 commands.despawn_recursive(be);
             }
         }

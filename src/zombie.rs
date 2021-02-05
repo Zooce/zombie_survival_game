@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_prototype_lyon::prelude::*;
 
 use crate::common::*;
 
@@ -23,6 +22,7 @@ pub fn spawn_zombie(
     commands: &mut Commands,
     resource_handles: &ResourceHandles,
 ) {
+    // let hurt_collider_pos = transform.translation;
     commands
         .spawn(SpriteBundle {
             material: resource_handles.zombie_handle.clone(),
@@ -30,21 +30,19 @@ pub fn spawn_zombie(
             ..Default::default()
         })
         .with(Zombie { angle: 0.0 })
-        .with(ColliderRadius(32.0))
         .with(Health { points: 100 })
+        .with(HurtCollider {
+            radius: 32.0,
+            offset: Vec3::zero(),
+        })
         // debugging
         .with_children(|parent| {
-            let collider_shape = shapes::Circle {
-                radius: 32.0,
-                ..Default::default()
-            };
-
-            parent.spawn(ShapeBuilder::build_as(
-                &collider_shape,
-                resource_handles.debug_collider_handle.clone(),
-                TessellationMode::Stroke(StrokeOptions::default()),
-                Transform::default())
-            );
+            parent
+                .spawn(SpriteBundle {
+                    material: resource_handles.debug_hurt_collider_handle.clone(),
+                    ..Default::default()
+                })
+                ;
         })
         ;
 }

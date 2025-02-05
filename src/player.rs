@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use crate::common::*;
 
 pub struct Player;
+pub struct PlayerHitCollider;
 
 pub fn spawn_player(
     commands: &mut Commands,
@@ -9,34 +10,35 @@ pub fn spawn_player(
 ) {
     let offset = Transform::from_translation(Vec3::new(32.0, 0.0, 0.0));
     // basic player components
-    commands
-        // .spawn(SpriteSheetBundle {
+    commands.spawn()
+        // .with_bundle(SpriteSheetBundle {
         //     texture_atlas: resource_handles.player_texture_atlas_handle.clone(),
         //     transform: Transform::from_scale(Vec3::splat(6.0)),
         //     ..Default::default()
         // })
-        .spawn(SpriteBundle {
+        .insert_bundle(SpriteBundle {
             material: resource_handles.player_handle.clone(),
             ..Default::default()
         })
-        .with(Timer::from_seconds(0.08, true))
+        .insert(Timer::from_seconds(0.08, true))
         // .with(AnimationState{ dir_offset: 6, frame: 0, is_walking: false })
-        .with(Player)
-        .with(Attack {
-            damage: 30,
-        })
-        .with(HitCollider {
-            radius: 16.0,
-            transform: offset.clone(),
-        })
+        .insert(Player)
         // debugging
         .with_children(|parent| {
-            parent
-                .spawn(SpriteBundle {
+            parent.spawn()
+                .insert_bundle(SpriteBundle {
                     material: resource_handles.debug_hit_collider_handle.clone(),
                     transform: offset,
                     ..Default::default()
                 })
+                .insert(HitCollider {
+                    radius: 16.0,
+                    transform: offset,
+                })
+                .insert(Attack {
+                    damage: 30,
+                })
+                .insert(PlayerHitCollider)
                 ;
         })
         ;

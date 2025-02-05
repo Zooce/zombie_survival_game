@@ -2,11 +2,10 @@
 name = "zombie_survival_game"
 version = "0.1.0"
 authors = ["Zooce <zooce@hey.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = "0.4"
+bevy = "0.7.0"
 rand = "0.8"
-# bevy_prototype_lyon = { git = "https://github.com/Nilirad/bevy_prototype_lyon.git", rev = "529d648799f8cf68dedff2668a30c172bc8fd80b" }

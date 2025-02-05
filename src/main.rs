@@ -22,8 +22,9 @@ mod zombie;
 use crate::zombie::*;
 
 fn main() {
-    App::build()
-        .add_resource(
+    App::new()
+        // resources
+        .insert_resource(
             WindowDescriptor {
                 title: "Zombie Survival Game".to_string(),
                 resizable: false,
@@ -31,30 +32,38 @@ fn main() {
             }
         )
         .init_resource::<ZombieTimer>()
-        .add_resource(BulletSpawnInfo{ transform: Transform::default() })
+        .insert_resource(BulletSpawnInfo{ transform: Transform::default() })
+
+        // events
         .add_event::<ShootEvent>()
         .add_event::<PlayerMeleeEvent>()
         .add_event::<HurtZombieEvent>()
+
+        // plugins
         .add_plugins(DefaultPlugins)
-        // .add_plugin(ShapePlugin)
+
+        // startup
         .add_startup_stage("insert_resources", SystemStage::single(insert_reusable_resources.system()))
         .add_startup_stage_after("insert_resources", "setup", SystemStage::single(setup.system()))
-        .add_system(check_keyboard_events.system())
+
+        // systems
+        .add_system(check_player_movement_events.system())
         .add_system(animate_player.system())
-        .add_system(zombie_movement.system())
+        // .add_system(zombie_movement.system())
         .add_system(check_mouse_click_events.system())
         .add_system(handle_shoot_events.system())
         .add_system(bullet_movement.system())
-        .add_system(check_mouse_move_events.system())
         .add_system(bullet_decay.system())
         .add_system(check_bullet_collisions.system())
         .add_system(handle_player_melee_events.system())
         .add_system(handle_hurt_zombie_event.system())
+
+        // launch
         .run();
 }
 
 fn insert_reusable_resources(
-    commands: &mut Commands,
+    mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     // mut texture_atlases: ResMut<Assets<TextureAtlas>>,
@@ -81,7 +90,7 @@ fn insert_reusable_resources(
 }
 
 fn setup(
-    commands: &mut Commands,
+    mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     resource_handles: Res<ResourceHandles>,
@@ -89,19 +98,20 @@ fn setup(
     // draw the temp player sprite
     let background_texture_handle = asset_server.load("test-background.png");
 
-    commands
-        .spawn(Camera2dBundle::default())
+    commands.spawn()
+        .insert_bundle(OrthographicCameraBundle::new_2d());
 
+    commands.spawn()
         // background sprite
-        .spawn(SpriteBundle {
+        .insert_bundle(SpriteBundle {
             material: materials.add(background_texture_handle.into()),
             ..Default::default()
         })
-        .with(Background)
+        .insert(Background)
         ;
 
-    spawn_player(commands, &resource_handles);
-    spawn_zombie(commands, &resource_handles);
+    spawn_player(&mut commands, &resource_handles);
+    spawn_zombie(&mut commands, &resource_handles);
 }
 
 struct Background;

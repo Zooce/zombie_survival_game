@@ -21,27 +21,27 @@ impl Default for Bullet {
 }
 
 pub fn spawn_bullet(
-    commands: &mut Commands,
+    mut commands: Commands,
     resource_handles: &ResourceHandles,
     transform: Transform,
 ) {
-    commands
-        .spawn(SpriteBundle {
+    commands.spawn()
+        .insert_bundle(SpriteBundle {
             material: resource_handles.bullet_handle.clone(),
             transform,
             ..Default::default()
         })
-        .with(Bullet::default())
-        .with(HitCollider {
+        .insert(Bullet::default())
+        .insert(HitCollider {
             radius: 8.0,
             transform,
         })
-        .with(Attack{ damage: 10 })
+        .insert(Attack{ damage: 10 })
 
         // debugging
         .with_children(|parent| {
-            parent.
-                spawn(SpriteBundle {
+            parent.spawn()
+                .insert_bundle(SpriteBundle {
                     material: resource_handles.debug_hit_collider_handle.clone(),
                     ..Default::default()
                 })
@@ -66,21 +66,21 @@ pub fn bullet_movement(
 }
 
 pub fn bullet_decay(
-    commands: &mut Commands,
+    mut commands: Commands,
     time: Res<Time>,
     mut bullet_query: Query<(Entity, &mut Bullet)>,
 ) {
     for (entity, mut bullet) in bullet_query.iter_mut() {
-        if bullet.decay_timer.tick(time.delta_seconds()).finished() {
-            //commands.despawn(entity);
-            commands.despawn_recursive(entity);
+        if bullet.decay_timer.tick(time.delta()).finished() {
+            //commands.entity(entity).despawn();
+            commands.entity(entity).despawn_recursive();
         }
     }
 }
 
 pub fn check_bullet_collisions(
-    mut hurt_zombie_events: ResMut<Events<HurtZombieEvent>>,
-    commands: &mut Commands,
+    mut hurt_zombie_event_writer: EventWriter<HurtZombieEvent>,
+    mut commands: Commands,
     mut zombie_query: Query<(Entity, &HurtCollider, &Transform), With<Zombie>>,
     bullet_query: Query<(Entity, &HitCollider, &Transform, &Attack), With<Bullet>>,
 ) {
@@ -92,8 +92,8 @@ pub fn check_bullet_collisions(
                 //  - display blood splatter on the ground (this also needs to time out...?)
                 //  - maybe move these different parts to different systems?
                 //  - play some kind of animation on the zombie, showing that it took damage
-                hurt_zombie_events.send(HurtZombieEvent { entity: ze, damage: attack.damage });
-                commands.despawn_recursive(be);
+                hurt_zombie_event_writer.send(HurtZombieEvent { entity: ze, damage: attack.damage });
+                commands.entity(be).despawn_recursive();
             }
         }
     }

@@ -16,7 +16,7 @@ pub fn animate_player(
     mut query: Query<(&mut Timer, &mut TextureAtlasSprite, &mut AnimationState), With<Player>>
 ) {
     for (mut timer, mut sprite, mut anim_state) in query.iter_mut() {
-        timer.tick(time.delta_seconds());
+        timer.tick(time.delta());
         if timer.finished() {
             if anim_state.is_walking {
                 anim_state.frame = (anim_state.frame + 1) % PLAYER_ANIM_FRAME_COUNT;

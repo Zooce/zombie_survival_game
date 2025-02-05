@@ -23,22 +23,22 @@ pub fn spawn_zombie(
     resource_handles: &ResourceHandles,
 ) {
     // let hurt_collider_pos = transform.translation;
-    commands
-        .spawn(SpriteBundle {
+    commands.spawn()
+        .insert_bundle(SpriteBundle {
             material: resource_handles.zombie_handle.clone(),
             transform: Transform::from_translation(Vec3::new(-300.0, 200.0, 0.0)),
             ..Default::default()
         })
-        .with(Zombie { angle: 0.0 })
-        .with(Health { points: 100 })
-        .with(HurtCollider {
+        .insert(Zombie { angle: 0.0 })
+        .insert(Health { points: 100 })
+        .insert(HurtCollider {
             radius: 32.0,
-            offset: Vec3::zero(),
+            offset: Vec3::ZERO,
         })
         // debugging
         .with_children(|parent| {
-            parent
-                .spawn(SpriteBundle {
+            parent.spawn()
+                .insert_bundle(SpriteBundle {
                     material: resource_handles.debug_hurt_collider_handle.clone(),
                     ..Default::default()
                 })
@@ -53,7 +53,7 @@ pub fn zombie_movement(
     mut zombie_query: Query<(&mut Zombie, &mut Transform)>,
 ) {
     use rand::{thread_rng, Rng};
-    zombie_timer.timer.tick(time.delta_seconds());
+    zombie_timer.timer.tick(time.delta());
     let mut rng = thread_rng();
     // TODO: store this speed with the zombie? different zombies will have
     //       different speeds?

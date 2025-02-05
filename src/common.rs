@@ -48,8 +48,9 @@ pub fn circles_collide(r1: f32, p1: Vec3, r2: f32, p2: Vec3) -> bool {
     // or even better:
     //
     //      (r1 + r2)^2  >  (x2 - x1)^2 + (y2 - y1)^2
-    let max_dist = (r1+ r2).powi(2);
+    let max_dist = (r1 + r2).powi(2);
     let diff = p1 - p2;
     let dist = (diff.x).powi(2) + (diff.y).powi(2);
+    println!("dist2{} max2{}", dist, max_dist);
     dist < max_dist
 }
